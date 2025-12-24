@@ -1,0 +1,119 @@
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* V1 Medical Palette: White & Electric Blue */
+  --color-bg-main: #ffffff;
+  --color-bg-panel: #ffffff;
+  --color-bg-hover: #f8fafc;
+
+  --color-text-primary: #1e293b;
+  /* Slate 800 */
+  --color-text-secondary: #64748b;
+  /* Slate 500 */
+
+  --color-accent: #2563eb;
+  /* Electric Blue (closer to Royal Blue) */
+  --color-accent-light: rgba(37, 99, 235, 0.1);
+  --color-accent-glow: rgba(37, 99, 235, 0.2);
+
+  --color-border: #e2e8f0;
+  /* Slate 200 */
+  --color-border-hover: #2563eb;
+
+  --font-main: 'Outfit', sans-serif;
+
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 8px;
+
+  --shadow-soft: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 20px 40px -10px rgba(37, 99, 235, 0.15);
+
+  --transition-fast: 0.2s ease;
+  --transition-medium: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--color-bg-main);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+/* Glass/Panel Utilities */
+.glass-panel {
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-soft);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-medium);
+}
+
+.glass-panel:hover {
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+.glass-input {
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  font-family: var(--font-main);
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.glass-input:focus {
+  background: #ffffff;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .glass-panel {
+    border-radius: var(--radius-md);
+  }
+}
