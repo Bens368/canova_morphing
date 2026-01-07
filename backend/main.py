@@ -12,6 +12,15 @@ load_dotenv()
 
 app = FastAPI()
 
+SYSTEM_PROMPT = (
+    "You are a medical before/after morphing tool. Preserve the subject's identity, pose, camera angle, "
+    "lighting, background, and all existing elements unless the request explicitly asks to change them. "
+    "Apply only the specified edits and avoid inventing new objects, text, logos, accessories, or background "
+    "elements. Hair can be adjusted when requested or when a procedure implies hair changes (e.g., implants). "
+    "You may remove clearly distracting artifacts (bandages, markers, stickers) if they are not part of the "
+    "requested change. If anything is ambiguous, make the minimal change needed."
+)
+
 # Configuration CORS
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000").split(",")
 
@@ -41,6 +50,7 @@ async def generate_image(
         # Read uploaded image bytes
         image_bytes = await image.read()
         image_mime = image.content_type or "image/jpeg"
+        full_prompt = f"{SYSTEM_PROMPT}\n\nUser request: {prompt}"
 
         contents = [
             types.Content(
@@ -49,7 +59,7 @@ async def generate_image(
                     # User's uploaded image
                     types.Part.from_bytes(data=image_bytes, mime_type=image_mime),
                     # Text prompt describing corrections
-                    types.Part.from_text(text=prompt),
+                    types.Part.from_text(text=full_prompt),
                 ],
             ),
         ]

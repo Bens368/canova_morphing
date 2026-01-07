@@ -14,6 +14,10 @@ const PROCEDURES = [
   { id: 'rhinoplasty', label: 'Rhinoplastie' },
   { id: 'face_lifting', label: 'Lifting Facial' },
   { id: 'double_chin', label: 'Double Menton' },
+  { id: 'otoplasty', label: 'Oreilles Décollées (Otoplastie)' },
+  { id: 'breast_augmentation', label: 'Poitrine - Augmentation' },
+  { id: 'breast_reduction', label: 'Poitrine - Réduction' },
+  { id: 'liposuction', label: 'Lipoaspiration' },
 ];
 
 // --- Sous-composants ---
@@ -101,10 +105,13 @@ const ProcedureSelector = ({ selected, onToggle }) => (
 const DiagnosisInput = ({ value, onChange }) => (
   <div className="glass-panel" style={{ padding: '2rem' }}>
     <h2 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', color: 'var(--color-accent)' }}>2. Diagnostic & Corrections Spécifiques</h2>
+    <p style={{ color: 'var(--color-text-secondary)', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+      Pour chaque intervention sélectionnée, précisez le résultat souhaité (ex: Poitrine: augmenter/diminuer, Lipoaspiration: zones ciblées, Oreilles: rapprocher).
+    </p>
     <textarea
       className="glass-input"
       style={{ width: '100%', minHeight: '120px', resize: 'vertical' }}
-      placeholder="Décrivez les ajustements précis (ex: 'Réduire les rides du lion, augmenter volume lèvre supérieure de 20%...')"
+      placeholder="Décrivez les ajustements précis pour chaque intervention sélectionnée (ex: 'Poitrine: augmenter de 1 bonnet, Lipoaspiration: ventre et hanches, Rhinoplastie: affiner la pointe')."
       value={value}
       onChange={onChange}
     />
@@ -147,39 +154,59 @@ function App() {
   const [selectedProcedures, setSelectedProcedures] = useState([]);
   const [diagnosis, setDiagnosis] = useState('');
   const [resultImage, setResultImage] = useState(null);
+  const [round, setRound] = useState(0);
+  const [improvementNotes, setImprovementNotes] = useState('');
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [fullScreenImg, setFullScreenImg] = useState(null);
   const [error, setError] = useState(null);
 
-  const handleImageSelect = (file) => {
-    setSourceImage(file);
-    setSourcePreview(URL.createObjectURL(file));
-    setStep('setup');
-    setResultImage(null);
-    setError(null);
+  const buildPrompt = ({ refinementText, roundNumber, isRefinement }) => {
+    const selectedLabels = PROCEDURES
+      .filter(p => selectedProcedures.includes(p.id))
+      .map(p => p.label)
+      .join(', ');
+    const focus = selectedLabels || 'Aucune zone spécifiée';
+    const details = diagnosis.trim() || 'Aucune précision fournie';
+    const promptParts = [
+      'Plastic surgery morphing simulation.',
+      `Focus areas: ${focus}.`,
+      `Details per intervention: ${details}.`,
+    ];
+
+    if (isRefinement && refinementText) {
+      promptParts.push(`Refinement round ${roundNumber}: ${refinementText}. Keep previous edits and only adjust this request.`);
+    }
+
+    promptParts.push('Output: photorealistic, maintain identity, consistent lighting/background, before/after should match except requested edits.');
+    return promptParts.join(' ');
   };
 
-  const handleGenerate = async () => {
-    if (!sourceImage) return;
+  const dataUrlToFile = async (dataUrl, filename) => {
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    return new File([blob], filename, { type: blob.type || 'image/png' });
+  };
+
+  const runGeneration = async ({ imageFile, prompt, nextRound, resetImprovement }) => {
+    if (!imageFile) return;
     setIsGenerating(true);
     setError(null);
 
-    const selectedLabels = PROCEDURES.filter(p => selectedProcedures.includes(p.id)).map(p => p.label).join(', ');
-    const fullPrompt = `Plastic surgery morphing simulation. Focus: ${selectedLabels}. Details: ${diagnosis}. Output: Photorealistic, maintain identity, high quality medical result.`;
-
     const formData = new FormData();
-    formData.append('prompt', fullPrompt);
-    formData.append('image', sourceImage);
+    formData.append('prompt', prompt);
+    formData.append('image', imageFile);
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await fetch(`${apiUrl}/generate`, { method: 'POST', body: formData });
-      if (!response.ok) throw new Error((await response.json()).detail || 'La génération a échoué');
-
       const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'La génération a échoué');
+
       setResultImage(data.image);
       setStep('result');
+      setRound(nextRound);
+      if (resetImprovement) setImprovementNotes('');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -187,19 +214,72 @@ function App() {
     }
   };
 
+  const handleImageSelect = (file) => {
+    setSourceImage(file);
+    setSourcePreview(URL.createObjectURL(file));
+    setStep('setup');
+    setResultImage(null);
+    setRound(0);
+    setImprovementNotes('');
+    setError(null);
+  };
+
+  const handleGenerate = async () => {
+    if (!sourceImage) return;
+    const fullPrompt = buildPrompt({ isRefinement: false });
+    await runGeneration({ imageFile: sourceImage, prompt: fullPrompt, nextRound: 1, resetImprovement: true });
+  };
+
+  const handleImprove = async () => {
+    if (!resultImage || !improvementNotes.trim()) return;
+    const baseRound = round > 0 ? round : 1;
+    const nextRound = baseRound + 1;
+    const imageFile = await dataUrlToFile(resultImage, `canova-morphing-tour-${nextRound}.png`);
+    const fullPrompt = buildPrompt({
+      isRefinement: true,
+      refinementText: improvementNotes.trim(),
+      roundNumber: nextRound,
+    });
+
+    await runGeneration({ imageFile, prompt: fullPrompt, nextRound, resetImprovement: true });
+  };
+
   const toggleProcedure = (id) => {
     setSelectedProcedures(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   };
 
-  const handleDownload = () => {
+  const handleSaveResult = async () => {
     if (!resultImage) return;
+    const filename = 'canova-morphing-resultat.png';
+    const shareSupported = typeof navigator !== 'undefined' && !!navigator.share;
+
+    if (shareSupported) {
+      try {
+        const file = await dataUrlToFile(resultImage, filename);
+        const shareData = { files: [file], title: 'Canova Morphing', text: 'Simulation de morphing' };
+        if (!navigator.canShare || navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          return;
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+
     const link = document.createElement('a');
     link.href = resultImage;
-    link.download = 'canova-morphing-resultat.png';
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
+  const canSaveToLibrary = typeof window !== 'undefined'
+    && window.matchMedia?.('(pointer:coarse)').matches
+    && typeof navigator !== 'undefined'
+    && !!navigator.share;
+  const saveLabel = canSaveToLibrary ? 'Enregistrer dans la photothèque' : 'Télécharger le Résultat';
+  const nextImprovementRound = (round > 0 ? round : 1) + 1;
 
   return (
     <div className="app-container" style={{
@@ -305,12 +385,20 @@ function App() {
                   fontSize: '0.8rem', fontWeight: '700', letterSpacing: '0.05em'
                 }}>
                   APRÈS
+                  {round > 1 && (
+                    <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', fontWeight: '600', opacity: 0.9 }}>
+                      Tour {round}
+                    </span>
+                  )}
                 </div>
               </div>
+              <p style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)', opacity: 0.75 }}>
+                Simulation à titre indicatif, ne garantit pas un résultat identique.
+              </p>
 
               <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
                 <button
-                  onClick={handleDownload}
+                  onClick={handleSaveResult}
                   style={{
                     padding: '0.8rem 2rem',
                     border: '2px solid var(--color-accent)',
@@ -322,7 +410,37 @@ function App() {
                   onMouseOver={(e) => { e.currentTarget.style.background = 'var(--color-accent)'; e.currentTarget.style.color = 'white'; }}
                   onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-accent)'; }}
                 >
-                  Télécharger le Résultat
+                  {saveLabel}
+                </button>
+              </div>
+
+              <div style={{ marginTop: '1.5rem' }}>
+                <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text-secondary)' }}>
+                  Améliorer le résultat (Tour {nextImprovementRound})
+                </div>
+                <textarea
+                  className="glass-input"
+                  style={{ width: '100%', minHeight: '90px', resize: 'vertical' }}
+                  placeholder="Décrivez ce qu'il faut améliorer pour le prochain tour (ex: affiner la pointe du nez, augmenter légèrement la projection...)."
+                  value={improvementNotes}
+                  onChange={(e) => setImprovementNotes(e.target.value)}
+                />
+                <button
+                  onClick={handleImprove}
+                  disabled={isGenerating || !improvementNotes.trim()}
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.7rem 1.5rem',
+                    background: 'var(--color-accent)',
+                    color: 'white',
+                    fontWeight: '600',
+                    borderRadius: 'var(--radius-md)',
+                    opacity: isGenerating || !improvementNotes.trim() ? 0.6 : 1,
+                    cursor: isGenerating || !improvementNotes.trim() ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {isGenerating ? 'Amélioration en cours...' : `Améliorer (Tour ${nextImprovementRound})`}
                 </button>
               </div>
             </div>
