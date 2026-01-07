@@ -111,7 +111,71 @@ button {
   animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Dotted landing background */
+.dotted-surface {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.procedure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.8rem;
+}
+
+.procedure-group + .procedure-group {
+  margin-top: 1.25rem;
+}
+
 /* Responsive Utilities */
+@media (max-width: 900px) {
+  .responsive-grid {
+    gap: 1.5rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-container {
+    padding: 1.25rem 0.75rem !important;
+  }
+
+  .upload-panel {
+    padding: 2.5rem 1.5rem !important;
+  }
+
+  .procedure-panel {
+    padding: 1.5rem !important;
+  }
+
+  .procedure-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 0.6rem;
+  }
+
+  .procedure-button {
+    padding: 0.85rem !important;
+    font-size: 0.82rem !important;
+  }
+
+  .primary-action-button,
+  .download-button,
+  .improve-button {
+    width: 100%;
+  }
+
+  .result-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .secondary-action-button {
+    margin-left: 0 !important;
+  }
+}
+
 @media (max-width: 768px) {
   .glass-panel {
     border-radius: var(--radius-md);

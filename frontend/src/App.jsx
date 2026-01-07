@@ -1,24 +1,39 @@
 import React, { useState, useRef } from 'react';
+import { DottedSurface } from './components/ui/dotted-surface';
 import './index.css';
 
-const PROCEDURES = [
-  { id: 'botox_front', label: 'Botox (Front)' },
-  { id: 'botox_glabella', label: 'Botox (Glabelle)' },
-  { id: 'botox_eyes', label: 'Botox (Patte d\'oie)' },
-  { id: 'lips_filler', label: 'Lèvres (Acide H.)' },
-  { id: 'nasolabial_filler', label: 'Sillons Nasogéniens' },
-  { id: 'dark_circles', label: 'Cernes (Paupières)' },
-  { id: 'cheek_volume', label: 'Volume Pommettes' },
-  { id: 'jawline', label: 'Jawline & Menton' },
-  { id: 'blepharoplasty', label: 'Blépharoplastie' },
-  { id: 'rhinoplasty', label: 'Rhinoplastie' },
-  { id: 'face_lifting', label: 'Lifting Facial' },
-  { id: 'double_chin', label: 'Double Menton' },
-  { id: 'otoplasty', label: 'Oreilles Décollées (Otoplastie)' },
-  { id: 'breast_augmentation', label: 'Poitrine - Augmentation' },
-  { id: 'breast_reduction', label: 'Poitrine - Réduction' },
-  { id: 'liposuction', label: 'Lipoaspiration' },
+const PROCEDURE_GROUPS = [
+  {
+    id: 'medecine',
+    title: 'Médecine esthétique',
+    items: [
+      { id: 'botox_front', label: 'Botox (Front)' },
+      { id: 'botox_glabella', label: 'Botox (Glabelle)' },
+      { id: 'botox_eyes', label: 'Botox (Patte d\'oie)' },
+      { id: 'lips_filler', label: 'Lèvres (Acide H.)' },
+      { id: 'nasolabial_filler', label: 'Sillons Nasogéniens' },
+      { id: 'dark_circles', label: 'Cernes (Paupières)' },
+      { id: 'cheek_volume', label: 'Volume Pommettes' },
+      { id: 'jawline', label: 'Jawline & Menton' },
+      { id: 'double_chin', label: 'Double Menton' },
+    ],
+  },
+  {
+    id: 'chirurgie',
+    title: 'Chirurgie esthétique',
+    items: [
+      { id: 'blepharoplasty', label: 'Blépharoplastie' },
+      { id: 'rhinoplasty', label: 'Rhinoplastie' },
+      { id: 'face_lifting', label: 'Lifting Facial' },
+      { id: 'otoplasty', label: 'Oreilles Décollées (Otoplastie)' },
+      { id: 'breast_augmentation', label: 'Poitrine - Augmentation' },
+      { id: 'breast_reduction', label: 'Poitrine - Réduction' },
+      { id: 'liposuction', label: 'Lipoaspiration' },
+    ],
+  },
 ];
+
+const ALL_PROCEDURES = PROCEDURE_GROUPS.flatMap((group) => group.items);
 
 // --- Sous-composants ---
 
@@ -44,7 +59,7 @@ const ImageUpload = ({ onImageSelect }) => {
 
   return (
     <div
-      className="glass-panel"
+      className="glass-panel upload-panel"
       style={{
         padding: '4rem 2rem',
         textAlign: 'center',
@@ -62,7 +77,22 @@ const ImageUpload = ({ onImageSelect }) => {
       onClick={() => inputRef.current.click()}
     >
       <input ref={inputRef} type="file" accept="image/*" onChange={handleChange} style={{ display: 'none' }} />
-      <div style={{ fontSize: '4rem', marginBottom: '1.5rem', opacity: 0.8 }}>📸</div>
+      <svg
+        width="64"
+        height="48"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="var(--color-accent)"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ marginBottom: '1.5rem', opacity: 0.9 }}
+        aria-hidden="true"
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <path d="M7 10l5-5 5 5" />
+        <path d="M12 5v12" />
+      </svg>
       <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Télécharger la Photo Patient</h3>
       <p style={{ color: 'var(--color-text-secondary)', maxWidth: '280px', margin: '0 auto' }}>
         Glisser-déposer, cliquer pour parcourir, ou prendre une photo directement
@@ -72,33 +102,41 @@ const ImageUpload = ({ onImageSelect }) => {
 };
 
 const ProcedureSelector = ({ selected, onToggle }) => (
-  <div className="glass-panel" style={{ padding: '2rem' }}>
+  <div className="glass-panel procedure-panel" style={{ padding: '2rem' }}>
     <h2 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', color: 'var(--color-accent)' }}>1. Zones d'Intervention</h2>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.8rem' }}>
-      {PROCEDURES.map((proc) => {
-        const isSelected = selected.includes(proc.id);
-        return (
-          <button
-            key={proc.id}
-            onClick={() => onToggle(proc.id)}
-            style={{
-              padding: '1rem',
-              border: isSelected ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-sm)',
-              color: isSelected ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-              background: isSelected ? 'var(--color-accent-light)' : 'white',
-              transition: 'all 0.2s',
-              textAlign: 'center',
-              fontWeight: isSelected ? '600' : '500',
-              fontSize: '0.9rem',
-              boxShadow: isSelected ? '0 4px 12px rgba(37,99,235,0.1)' : 'none'
-            }}
-          >
-            {proc.label}
-          </button>
-        );
-      })}
-    </div>
+    {PROCEDURE_GROUPS.map((group) => (
+      <div key={group.id} className="procedure-group">
+        <div style={{ fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text-secondary)' }}>
+          {group.title}
+        </div>
+        <div className="procedure-grid">
+          {group.items.map((proc) => {
+            const isSelected = selected.includes(proc.id);
+            return (
+              <button
+                key={proc.id}
+                onClick={() => onToggle(proc.id)}
+                className="procedure-button"
+                style={{
+                  padding: '1rem',
+                  border: isSelected ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: isSelected ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                  background: isSelected ? 'var(--color-accent-light)' : 'white',
+                  transition: 'all 0.2s',
+                  textAlign: 'center',
+                  fontWeight: isSelected ? '600' : '500',
+                  fontSize: '0.9rem',
+                  boxShadow: isSelected ? '0 4px 12px rgba(37,99,235,0.1)' : 'none'
+                }}
+              >
+                {proc.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    ))}
   </div>
 );
 
@@ -162,7 +200,7 @@ function App() {
   const [error, setError] = useState(null);
 
   const buildPrompt = ({ refinementText, roundNumber, isRefinement }) => {
-    const selectedLabels = PROCEDURES
+    const selectedLabels = ALL_PROCEDURES
       .filter(p => selectedProcedures.includes(p.id))
       .map(p => p.label)
       .join(', ');
@@ -248,24 +286,9 @@ function App() {
     setSelectedProcedures(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   };
 
-  const handleSaveResult = async () => {
+  const handleDownloadResult = () => {
     if (!resultImage) return;
     const filename = 'canova-morphing-resultat.png';
-    const shareSupported = typeof navigator !== 'undefined' && !!navigator.share;
-
-    if (shareSupported) {
-      try {
-        const file = await dataUrlToFile(resultImage, filename);
-        const shareData = { files: [file], title: 'Canova Morphing', text: 'Simulation de morphing' };
-        if (!navigator.canShare || navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-          return;
-        }
-      } catch (err) {
-        if (err && err.name === 'AbortError') return;
-      }
-    }
-
     const link = document.createElement('a');
     link.href = resultImage;
     link.download = filename;
@@ -274,11 +297,24 @@ function App() {
     document.body.removeChild(link);
   };
 
+  const handleSaveToLibrary = async () => {
+    if (!resultImage) return;
+    if (typeof navigator === 'undefined' || !navigator.share) return;
+    const filename = 'canova-morphing-resultat.png';
+    try {
+      const file = await dataUrlToFile(resultImage, filename);
+      const shareData = { files: [file], title: 'Canova Morphing', text: 'Simulation de morphing' };
+      if (navigator.canShare && !navigator.canShare(shareData)) return;
+      await navigator.share(shareData);
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  };
+
   const canSaveToLibrary = typeof window !== 'undefined'
     && window.matchMedia?.('(pointer:coarse)').matches
     && typeof navigator !== 'undefined'
     && !!navigator.share;
-  const saveLabel = canSaveToLibrary ? 'Enregistrer dans la photothèque' : 'Télécharger le Résultat';
   const nextImprovementRound = (round > 0 ? round : 1) + 1;
 
   return (
@@ -286,10 +322,14 @@ function App() {
       width: '100%', minHeight: '100vh',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', padding: '2rem 1rem',
-      overflowX: 'hidden'
+      overflowX: 'hidden',
+      position: 'relative'
     }}>
+      {step === 'upload' && (
+        <DottedSurface aria-hidden="true" />
+      )}
       {/* En-tête */}
-      <header style={{ marginBottom: '2rem', textAlign: 'center', zIndex: 10 }}>
+      <header style={{ marginBottom: '2rem', textAlign: 'center', zIndex: 10, position: 'relative' }}>
         <h1 style={{
           fontSize: 'clamp(2rem, 5vw, 3.5rem)',
           fontWeight: 200,
@@ -316,6 +356,8 @@ function App() {
         transition: 'all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)',
         width: '100%',
         maxWidth: step === 'result' ? '1600px' : step === 'setup' ? '1000px' : '600px',
+        zIndex: 1,
+        position: 'relative'
       }} className="responsive-grid">
 
         {/* 1. Colonne Upload */}
@@ -352,6 +394,7 @@ function App() {
             <button
               onClick={handleGenerate}
               disabled={isGenerating}
+              className="primary-action-button"
               style={{
                 padding: '1.25rem',
                 background: 'var(--color-accent)',
@@ -396,9 +439,10 @@ function App() {
                 Simulation à titre indicatif, ne garantit pas un résultat identique.
               </p>
 
-              <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+              <div style={{ marginTop: '1.5rem', textAlign: 'center' }} className="result-actions">
                 <button
-                  onClick={handleSaveResult}
+                  onClick={handleDownloadResult}
+                  className="download-button"
                   style={{
                     padding: '0.8rem 2rem',
                     border: '2px solid var(--color-accent)',
@@ -410,8 +454,25 @@ function App() {
                   onMouseOver={(e) => { e.currentTarget.style.background = 'var(--color-accent)'; e.currentTarget.style.color = 'white'; }}
                   onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-accent)'; }}
                 >
-                  {saveLabel}
+                  Télécharger le Résultat
                 </button>
+                {canSaveToLibrary && (
+                  <button
+                    onClick={handleSaveToLibrary}
+                    className="download-button secondary-action-button"
+                    style={{
+                      marginLeft: '0.75rem',
+                      padding: '0.8rem 2rem',
+                      border: '1px solid var(--color-border)',
+                      color: 'var(--color-text-secondary)',
+                      borderRadius: 'var(--radius-md)',
+                      fontWeight: '600',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    Enregistrer dans la photothèque
+                  </button>
+                )}
               </div>
 
               <div style={{ marginTop: '1.5rem' }}>
@@ -428,6 +489,7 @@ function App() {
                 <button
                   onClick={handleImprove}
                   disabled={isGenerating || !improvementNotes.trim()}
+                  className="improve-button"
                   style={{
                     marginTop: '0.75rem',
                     padding: '0.7rem 1.5rem',
