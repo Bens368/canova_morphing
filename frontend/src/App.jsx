@@ -62,43 +62,44 @@ const ImageUpload = ({ onImageSelect }) => {
     <div
       className="glass-panel upload-panel"
       style={{
-        padding: '2.5rem 2rem',
-        textAlign: 'center',
+        padding: '1.75rem 2rem',
+        textAlign: 'left',
         border: dragActive ? '2px dashed var(--color-accent)' : '2px dashed var(--color-border)',
         background: dragActive ? 'rgba(37, 99, 235, 0.08)' : 'rgba(255, 255, 255, 0.7)',
         cursor: 'pointer',
         transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
-        height: '100%',
         display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        gap: '1.5rem'
       }}
       onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
     >
       <input ref={inputRef} type="file" accept="image/*" onChange={handleChange} style={{ display: 'none' }} />
       <input ref={captureRef} type="file" accept="image/*" capture="environment" onChange={handleChange} style={{ display: 'none' }} />
-      <svg
-        width="52"
-        height="40"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="var(--color-accent)"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ marginBottom: '1rem', opacity: 0.9 }}
-        aria-hidden="true"
-      >
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <path d="M7 10l5-5 5 5" />
-        <path d="M12 5v12" />
-      </svg>
-      <h3 style={{ marginBottom: '0.35rem', fontSize: '1.25rem' }}>Télécharger la Photo Patient</h3>
-      <p style={{ color: 'var(--color-text-secondary)', maxWidth: '280px', margin: '0 auto 1.25rem' }}>
-        Glisser-déposer, cliquer pour parcourir, ou prendre une photo directement
-      </p>
+      <div className="upload-icon" aria-hidden="true">
+        <svg
+          width="48"
+          height="36"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ opacity: 0.9 }}
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <path d="M7 10l5-5 5 5" />
+          <path d="M12 5v12" />
+        </svg>
+      </div>
+      <div className="upload-text">
+        <h3 style={{ marginBottom: '0.35rem', fontSize: '1.2rem' }}>Télécharger la Photo Patient</h3>
+        <p style={{ color: 'var(--color-text-secondary)', maxWidth: '320px' }}>
+          Glisser-déposer, cliquer pour parcourir, ou prendre une photo directement
+        </p>
+      </div>
       <div className="upload-actions">
         <button
           type="button"
@@ -335,11 +336,15 @@ function App() {
     && !!navigator.share;
   const nextImprovementRound = (round > 0 ? round : 1) + 1;
 
+  const isUpload = step === 'upload';
+
   return (
     <div className="app-container" style={{
       width: '100%', minHeight: '100vh',
       display: 'flex', flexDirection: 'column',
-      alignItems: 'center', padding: '2rem 1rem',
+      alignItems: 'center',
+      justifyContent: isUpload ? 'center' : 'flex-start',
+      padding: isUpload ? '2.5rem 1rem' : '2rem 1rem',
       overflowX: 'hidden',
       position: 'relative'
     }}>
@@ -347,12 +352,12 @@ function App() {
         <DottedSurface aria-hidden="true" />
       )}
       {/* En-tête */}
-      <header style={{ marginBottom: '2rem', textAlign: 'center', zIndex: 10, position: 'relative' }}>
+      <header style={{ marginBottom: isUpload ? '1.5rem' : '2rem', textAlign: 'center', zIndex: 10, position: 'relative' }}>
         <h1 style={{
           fontSize: 'clamp(2rem, 5vw, 3.5rem)',
           fontWeight: 200,
           marginBottom: '0.5rem',
-          background: `linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-accent) 100%)`,
+          background: 'linear-gradient(135deg, #2563eb 0%, #7dd3fc 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
         }}>
@@ -366,20 +371,20 @@ function App() {
       {/* Conteneur Principal */}
       <main style={{
         display: 'grid',
-        gridTemplateColumns: step === 'upload' ? 'minmax(260px, 520px)'
+        gridTemplateColumns: step === 'upload' ? 'minmax(320px, 720px)'
           : step === 'setup' ? 'repeat(2, minmax(260px, 1fr))'
             : 'repeat(3, minmax(260px, 1fr))',
         gap: '2rem',
         alignItems: 'start',
         transition: 'all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)',
         width: '100%',
-        maxWidth: step === 'result' ? '1400px' : step === 'setup' ? '1100px' : '560px',
+        maxWidth: step === 'result' ? '1400px' : step === 'setup' ? '1100px' : '780px',
         zIndex: 1,
         position: 'relative'
       }} className="responsive-grid">
 
         {/* 1. Colonne Upload */}
-        <div style={{ height: step === 'upload' ? '500px' : 'auto', transition: 'all 0.5s' }} className="animate-fade-in">
+        <div style={{ height: step === 'upload' ? 'auto' : 'auto', transition: 'all 0.5s', width: '100%' }} className="animate-fade-in">
           {sourcePreview ? (
             <div className="glass-panel image-card" style={{ position: 'relative', overflow: 'hidden', cursor: 'zoom-in' }} onClick={() => setFullScreenImg({ src: sourcePreview, label: 'Avant' })}>
               <img src={sourcePreview} alt="Before" className="image-card-img" />
