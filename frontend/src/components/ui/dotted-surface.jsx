@@ -74,11 +74,8 @@ export function DottedSurface({ className = '', ...props }) {
 
     let count = 0;
     let animationId;
-    const waveHeight = 90;
-    const waveSpeed = 0.2;
-    const rotationSpeed = 0.0012;
-    const baseCamera = { x: 0, y: 355, z: 1220 };
-    camera.lookAt(0, 0, 0);
+    const waveHeight = 50;
+    const waveSpeed = 0.1;
 
     const animate = () => {
       animationId = requestAnimationFrame(animate);
@@ -97,12 +94,6 @@ export function DottedSurface({ className = '', ...props }) {
       }
 
       positionAttribute.needsUpdate = true;
-      points.rotation.y += rotationSpeed;
-      points.rotation.x = Math.sin(count * 0.08) * 0.05;
-      camera.position.x = baseCamera.x + Math.sin(count * 0.05) * 30;
-      camera.position.y = baseCamera.y + Math.sin(count * 0.04) * 18;
-      camera.lookAt(0, 0, 0);
-
       renderer.render(scene, camera);
       count += waveSpeed;
     };

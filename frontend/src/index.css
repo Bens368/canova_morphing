@@ -119,6 +119,52 @@ button {
   pointer-events: none;
 }
 
+.upload-panel {
+  backdrop-filter: blur(14px);
+  box-shadow: 0 20px 40px -20px rgba(37, 99, 235, 0.2);
+}
+
+.upload-actions {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.upload-action {
+  padding: 0.7rem 1.4rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.upload-action.primary-action-button {
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 10px 20px -10px rgba(37, 99, 235, 0.4);
+}
+
+.upload-action.secondary-action-button {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.image-card {
+  padding: 1rem;
+}
+
+.image-card-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 520px;
+  object-fit: contain;
+}
+
 .procedure-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -142,7 +188,7 @@ button {
   }
 
   .upload-panel {
-    padding: 2.5rem 1.5rem !important;
+    padding: 2.25rem 1.25rem !important;
   }
 
   .procedure-panel {
@@ -169,6 +215,15 @@ button {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+  }
+
+  .upload-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .upload-action {
+    width: 100%;
   }
 
   .secondary-action-button {
