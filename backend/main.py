@@ -15,6 +15,7 @@ app = FastAPI()
 SYSTEM_PROMPT = (
     "You are a medical before/after morphing tool. Preserve the subject's identity, pose, camera angle, "
     "lighting, background, and all existing elements unless the request explicitly asks to change them. "
+    "When the user requests a specific procedure (e.g. lifting, skin smoothing, volumizing), apply it clearly so the before/after effect is visible, while keeping the result natural."
     "Apply only the specified edits and avoid inventing new objects, text, logos, accessories, or background "
     "elements. Hair can be adjusted when requested or when a procedure implies hair changes (e.g., implants). "
     "You may remove clearly distracting artifacts (bandages, markers, stickers) if they are not part of the "
@@ -22,7 +23,10 @@ SYSTEM_PROMPT = (
 )
 
 # Configuration CORS
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000").split(",")
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000",
+).split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,11 +36,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.post("/generate")
-async def generate_image(
-    prompt: str = Body(...),
-    image: UploadFile = File(...)
-):
+async def generate_image(prompt: str = Body(...), image: UploadFile = File(...)):
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
@@ -63,7 +65,7 @@ async def generate_image(
                 ],
             ),
         ]
-        
+
         generate_content_config = types.GenerateContentConfig(
             response_modalities=["IMAGE"],
             image_config=types.ImageConfig(
@@ -77,31 +79,40 @@ async def generate_image(
             contents=contents,
             config=generate_content_config,
         )
-        
+
         # Parse response for image
-        if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
+        if (
+            response.candidates
+            and response.candidates[0].content
+            and response.candidates[0].content.parts
+        ):
             for part in response.candidates[0].content.parts:
                 if part.inline_data and part.inline_data.data:
                     # Found image data
                     image_data = part.inline_data.data
                     mime_type = part.inline_data.mime_type
                     # Convert bytes to base64 string for frontend
-                    image_data_b64 = base64.b64encode(image_data).decode('utf-8')
+                    image_data_b64 = base64.b64encode(image_data).decode("utf-8")
                     return {
                         "image": f"data:{mime_type};base64,{image_data_b64}",
-                        "message": "Success"
+                        "message": "Success",
                     }
-        
-        raise HTTPException(status_code=500, detail="No image generated from the model.")
+
+        raise HTTPException(
+            status_code=500, detail="No image generated from the model."
+        )
 
     except Exception as e:
         print(f"Error generating image: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
