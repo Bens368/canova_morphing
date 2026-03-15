@@ -44,7 +44,7 @@ async def generate_image(prompt: str = Body(...), image: UploadFile = File(...))
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
 
     client = genai.Client(api_key=api_key)
-    model = "gemini-3-pro-image-preview"
+    model = "gemini-3.1-flash-image-preview"
 
     print(f"Generating morphing for prompt: {prompt}")
 
