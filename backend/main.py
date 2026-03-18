@@ -56,6 +56,10 @@ PROCEDURE_LIBRARY = {
         "label": "Plis d'amertume",
         "directive": "Soften the marionette lines from the mouth corners toward the chin and subtly reduce oral commissure downturn if present. Keep the lower face natural, not overfilled, and preserve realistic mouth shape.",
     },
+    "skinbooster": {
+        "label": "Skinbooster",
+        "directive": "Improve skin quality only: make the skin look more hydrated, smoother, more luminous, and more even in texture and complexion, while preserving pores, natural texture, and the patient's age. Do not change facial structure, volume, contours, wrinkles outside a mild skin-quality improvement, or any non-skin anatomy.",
+    },
     "dark_circles": {
         "label": "Cernes",
         "directive": "Reduce tear trough hollowing, under-eye darkness, and shadowing while preserving eyelid anatomy and natural under-eye texture. Avoid removing all texture or making the under-eye region unnaturally bright.",
@@ -102,13 +106,16 @@ PROCEDURE_LIBRARY = {
     },
 }
 
-REALISM_RULES = [
-    "The result must look achievable by common aesthetic medicine or plastic surgery, not by fantasy retouching.",
-    "Edits should be clearly perceptible in the treated area and strong enough that the patient immediately sees the intended benefit, not a barely visible change.",
-    "Never remove all wrinkles, folds, laxity, or texture completely when that would look impossible. Improve them significantly but plausibly.",
-    "Exception for selected wrinkle-treatment zones: when the requested treatment would realistically make those wrinkles disappear or become almost imperceptible at rest, show that stronger correction.",
-    "Selected zones must be treated; non-selected zones must remain untreated.",
-    "When multiple interventions are selected, combine them coherently without changing untreated areas.",
+EDIT_INTENSITY_RULES = [
+    "A selected intervention must produce a strong, immediately visible effect in its exact target area.",
+    "Do not return timid, barely noticeable, ambiguous, or low-impact edits.",
+    "The patient should instantly understand what was treated by looking at the result.",
+    "For wrinkle treatments such as forehead lines, glabellar lines, or crow's feet, the selected wrinkles should be strongly reduced and may disappear almost completely at rest when that matches a successful treatment outcome.",
+    "For volumizing or contouring interventions, the shape change must be clearly visible, not subtle to the point of looking untreated.",
+    "For surgical interventions, the corrected anatomical change must be obvious and convincing in the final image.",
+    "Selected zones must be treated strongly; non-selected zones must remain untreated.",
+    "Keep the change medically plausible, but never use plausibility as a reason to under-edit the selected intervention.",
+    "When multiple interventions are selected, apply each one clearly without changing untreated areas.",
 ]
 
 NEGATIVE_RULES = [
@@ -179,7 +186,7 @@ def build_request_prompt(
         ),
         f"Clinical intent and user notes: {diagnosis_text}",
         "Procedure-specific directives:\n" + build_intervention_block(procedure_ids),
-        "Realism rules:\n" + "\n".join(f"- {rule}" for rule in REALISM_RULES),
+        "Edit strength rules:\n" + "\n".join(f"- {rule}" for rule in EDIT_INTENSITY_RULES),
         "Forbidden output patterns:\n"
         + "\n".join(f"- {rule}" for rule in NEGATIVE_RULES),
     ]

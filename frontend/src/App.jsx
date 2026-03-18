@@ -13,6 +13,7 @@ const PROCEDURE_GROUPS = [
       { id: 'lips_filler', label: 'Lèvres (Acide H.)' },
       { id: 'nasolabial_filler', label: 'Sillons Nasogéniens' },
       { id: 'marionette_lines', label: 'Plis d\'amertume' },
+      { id: 'skinbooster', label: 'Skinbooster' },
       { id: 'dark_circles', label: 'Cernes (Paupières)' },
       { id: 'cheek_volume', label: 'Volume Pommettes' },
       { id: 'jawline', label: 'Jawline & Menton' },
