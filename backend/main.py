@@ -126,6 +126,9 @@ NEGATIVE_RULES = [
     "No background redesign.",
 ]
 
+WRINKLE_PROCEDURES = {"botox_front", "botox_glabella", "botox_eyes"}
+LIFTING_PROCEDURES = {"face_lifting", "blepharoplasty"}
+
 
 def parse_procedures(raw_procedures: str | None) -> list[str]:
     if not raw_procedures:
@@ -144,6 +147,109 @@ def parse_procedures(raw_procedures: str | None) -> list[str]:
         if isinstance(value, str) and value in PROCEDURE_LIBRARY:
             normalized.append(value)
     return normalized
+
+
+def clamp_level(value: object, default: int = 3) -> int:
+    try:
+        numeric = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(1, min(5, numeric))
+
+
+def parse_advanced_settings(raw_advanced_settings: str | None) -> dict | None:
+    if not raw_advanced_settings:
+        return None
+
+    try:
+        parsed = json.loads(raw_advanced_settings)
+    except json.JSONDecodeError:
+        return None
+
+    if not isinstance(parsed, dict):
+        return None
+
+    raw_procedure_intensity = parsed.get("procedureIntensity", {})
+    normalized_procedure_intensity = {}
+    if isinstance(raw_procedure_intensity, dict):
+        for procedure_id, level in raw_procedure_intensity.items():
+            if procedure_id in PROCEDURE_LIBRARY:
+                normalized_procedure_intensity[procedure_id] = clamp_level(level, 3)
+
+    return {
+        "globalIntensity": clamp_level(parsed.get("globalIntensity"), 3),
+        "identityPreservation": clamp_level(parsed.get("identityPreservation"), 5),
+        "texturePreservation": clamp_level(parsed.get("texturePreservation"), 4),
+        "zoneIsolation": clamp_level(parsed.get("zoneIsolation"), 5),
+        "procedureIntensity": normalized_procedure_intensity,
+    }
+
+
+def describe_global_intensity(level: int) -> str:
+    descriptions = {
+        1: "Apply a subtle but still visible correction in the selected zones.",
+        2: "Apply a moderate clearly visible correction in the selected zones.",
+        3: "Apply a strong and obvious correction in the selected zones.",
+        4: "Apply a very strong correction in the selected zones while preserving overall identity.",
+        5: "Apply the maximum visible clinically plausible correction in the selected zones. The treatment result should be striking and immediately legible.",
+    }
+    return descriptions[level]
+
+
+def describe_identity_preservation(level: int) -> str:
+    descriptions = {
+        1: "Allow aggressive local treatment effects, but the subject must still remain recognizably the same patient.",
+        2: "Prioritize treatment visibility over minor local identity cues, while keeping the same patient overall.",
+        3: "Balance strong treatment visibility with good identity preservation.",
+        4: "Keep facial identity strongly preserved while still making the selected treatment clearly visible.",
+        5: "Preserve identity extremely strictly. The patient must remain unmistakably the same person in every non-treated trait.",
+    }
+    return descriptions[level]
+
+
+def describe_texture_preservation(level: int) -> str:
+    descriptions = {
+        1: "Texture preservation is low priority. Allow a cleaner treated finish if needed to show the effect strongly.",
+        2: "Preserve some natural texture, but prioritize readability of the treatment result.",
+        3: "Keep a balanced amount of natural skin texture while showing a strong treatment result.",
+        4: "Preserve natural pores and skin texture strongly, avoiding over-smoothed skin.",
+        5: "Preserve skin texture extremely strictly. Keep pores, micro-texture, and natural skin material wherever possible.",
+    }
+    return descriptions[level]
+
+
+def describe_zone_isolation(level: int) -> str:
+    descriptions = {
+        1: "Allow some secondary nearby changes if needed to make the main treatment effect coherent.",
+        2: "Keep edits mostly localized, with limited spillover into neighboring anatomy.",
+        3: "Keep edits clearly centered on the selected zones.",
+        4: "Keep edits tightly restricted to the selected zones with minimal collateral changes.",
+        5: "Restrict edits extremely strictly to the selected zones. Non-selected areas must remain unchanged.",
+    }
+    return descriptions[level]
+
+
+def describe_procedure_intensity(procedure_id: str, level: int) -> str:
+    label = PROCEDURE_LIBRARY[procedure_id]["label"]
+    base_descriptions = {
+        1: "Apply a subtle but visible correction for this intervention.",
+        2: "Apply a moderate clearly visible correction for this intervention.",
+        3: "Apply a strong and obvious correction for this intervention.",
+        4: "Apply a very strong correction for this intervention, close to the upper end of a convincing outcome.",
+        5: "Apply the maximum visible clinically plausible correction for this intervention.",
+    }
+
+    detail = base_descriptions[level]
+    if level == 5 and procedure_id in WRINKLE_PROCEDURES:
+        detail += " For this wrinkle treatment, the targeted wrinkles may be erased or almost erased at rest."
+    elif level >= 4 and procedure_id in WRINKLE_PROCEDURES:
+        detail += " For this wrinkle treatment, the targeted wrinkles should be strongly suppressed and nearly disappear at rest."
+    elif level == 5 and procedure_id in LIFTING_PROCEDURES:
+        detail += " The lifting or surgical correction should be very pronounced and immediately obvious."
+    elif level == 5 and procedure_id == "skinbooster":
+        detail += " The skin should look markedly more hydrated, luminous, and improved in quality, without changing facial structure."
+
+    return f"- {label}: {detail}"
 
 
 def build_intervention_block(procedure_ids: list[str]) -> str:
@@ -166,6 +272,7 @@ def build_request_prompt(
     refinement: str,
     round_number: int,
     fallback_prompt: str,
+    advanced_settings: dict | None,
 ) -> str:
     selected_labels = [
         PROCEDURE_LIBRARY[procedure_id]["label"] for procedure_id in procedure_ids
@@ -190,6 +297,23 @@ def build_request_prompt(
         "Forbidden output patterns:\n"
         + "\n".join(f"- {rule}" for rule in NEGATIVE_RULES),
     ]
+
+    if advanced_settings:
+        procedure_intensity = advanced_settings.get("procedureIntensity", {})
+        advanced_lines = [
+            describe_global_intensity(advanced_settings["globalIntensity"]),
+            describe_identity_preservation(advanced_settings["identityPreservation"]),
+            describe_texture_preservation(advanced_settings["texturePreservation"]),
+            describe_zone_isolation(advanced_settings["zoneIsolation"]),
+        ]
+        if procedure_ids:
+            advanced_lines.append("Per-intervention intensity overrides:")
+            for procedure_id in procedure_ids:
+                level = procedure_intensity.get(
+                    procedure_id, advanced_settings["globalIntensity"]
+                )
+                advanced_lines.append(describe_procedure_intensity(procedure_id, level))
+        sections.append("Advanced UI controls:\n" + "\n".join(f"- {line}" if not line.startswith("- ") and line != "Per-intervention intensity overrides:" else line for line in advanced_lines))
 
     if round_number > 1 and refinement_text:
         sections.append(
@@ -228,6 +352,7 @@ async def generate_image(
     diagnosis: str = Form(""),
     refinement: str = Form(""),
     round_number: int = Form(1),
+    advanced_settings: str = Form(""),
     image: UploadFile = File(...),
 ):
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -238,12 +363,14 @@ async def generate_image(
     model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image-preview")
 
     procedure_ids = parse_procedures(procedures)
+    parsed_advanced_settings = parse_advanced_settings(advanced_settings)
     final_prompt = build_request_prompt(
         procedure_ids=procedure_ids,
         diagnosis=diagnosis,
         refinement=refinement,
         round_number=max(round_number, 1),
         fallback_prompt=prompt,
+        advanced_settings=parsed_advanced_settings,
     )
     full_prompt = f"{BASE_SYSTEM_PROMPT.strip()}\n\n{final_prompt}"
 

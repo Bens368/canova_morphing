@@ -36,6 +36,21 @@ const PROCEDURE_GROUPS = [
 ];
 
 const ALL_PROCEDURES = PROCEDURE_GROUPS.flatMap((group) => group.items);
+const PROCEDURE_LABELS = Object.fromEntries(ALL_PROCEDURES.map((procedure) => [procedure.id, procedure.label]));
+const LEVEL_LABELS = {
+  1: 'Très discret',
+  2: 'Léger',
+  3: 'Équilibré',
+  4: 'Fort',
+  5: 'Maximum',
+};
+const ADVANCED_DEFAULTS = {
+  globalIntensity: 3,
+  identityPreservation: 5,
+  texturePreservation: 4,
+  zoneIsolation: 5,
+  procedureIntensity: {},
+};
 
 // --- Sous-composants ---
 
@@ -177,6 +192,163 @@ const DiagnosisInput = ({ value, onChange }) => (
   </div>
 );
 
+const SliderField = ({ label, description, value, onChange }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '1rem' }}>
+      <div>
+        <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{label}</div>
+        <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{description}</div>
+      </div>
+      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-accent)', minWidth: '78px', textAlign: 'right' }}>
+        {LEVEL_LABELS[value]}
+      </div>
+    </div>
+    <input
+      type="range"
+      min="1"
+      max="5"
+      step="1"
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      style={{ width: '100%', accentColor: 'var(--color-accent)' }}
+    />
+  </div>
+);
+
+const AdvancedSettingsPanel = ({
+  enabled,
+  onToggle,
+  settings,
+  onSettingChange,
+  onProcedureIntensityChange,
+  onReset,
+  selectedProcedures,
+}) => (
+  <div className="glass-panel" style={{ padding: '2rem' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: enabled ? '1.25rem' : 0 }}>
+      <div>
+        <h2 style={{ marginBottom: '0.35rem', fontSize: '1.1rem', color: 'var(--color-accent)' }}>3. Paramètres Avancés</h2>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.88rem', maxWidth: '520px' }}>
+          Activez ce mode pour piloter plus précisément la force des modifications. Si vous ne l'activez pas, le comportement par défaut est conservé.
+        </p>
+      </div>
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', flexShrink: 0 }}>
+        <span style={{ fontSize: '0.88rem', fontWeight: 600, color: enabled ? 'var(--color-accent)' : 'var(--color-text-secondary)' }}>
+          {enabled ? 'Activé' : 'Désactivé'}
+        </span>
+        <span
+          style={{
+            position: 'relative',
+            width: '54px',
+            height: '30px',
+            borderRadius: '999px',
+            background: enabled ? 'var(--color-accent)' : 'rgba(148, 163, 184, 0.45)',
+            transition: 'background 0.2s ease',
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '3px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => onToggle(e.target.checked)}
+            style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+          />
+          <span
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              background: 'white',
+              transform: enabled ? 'translateX(24px)' : 'translateX(0)',
+              transition: 'transform 0.2s ease',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.18)',
+            }}
+          />
+        </span>
+      </label>
+    </div>
+
+    {enabled && (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          <SliderField
+            label="Intensité globale"
+            description="Niveau général de transformation pour l'ensemble des interventions sélectionnées."
+            value={settings.globalIntensity}
+            onChange={(value) => onSettingChange('globalIntensity', value)}
+          />
+          <SliderField
+            label="Préservation de l'identité"
+            description="Force avec laquelle le modèle doit préserver le visage, l'identité et les traits du patient."
+            value={settings.identityPreservation}
+            onChange={(value) => onSettingChange('identityPreservation', value)}
+          />
+          <SliderField
+            label="Préservation de la texture"
+            description="Conserve davantage les pores, micro-textures et la matière naturelle de la peau."
+            value={settings.texturePreservation}
+            onChange={(value) => onSettingChange('texturePreservation', value)}
+          />
+          <SliderField
+            label="Précision des zones traitées"
+            description="Force avec laquelle seules les zones sélectionnées doivent être modifiées."
+            value={settings.zoneIsolation}
+            onChange={(value) => onSettingChange('zoneIsolation', value)}
+          />
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '0.25rem' }}>Intensité par zone sélectionnée</div>
+            <div style={{ fontSize: '0.84rem', color: 'var(--color-text-secondary)' }}>
+              Réglez finement la force de chaque intervention. Au maximum, l'effet doit être très marqué et clairement visible.
+            </div>
+          </div>
+
+          {selectedProcedures.length > 0 ? (
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {selectedProcedures.map((procedureId) => (
+                <SliderField
+                  key={procedureId}
+                  label={PROCEDURE_LABELS[procedureId] || procedureId}
+                  description="Ce réglage surcharge l'intensité globale pour cette intervention."
+                  value={settings.procedureIntensity[procedureId] ?? settings.globalIntensity}
+                  onChange={(value) => onProcedureIntensityChange(procedureId, value)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+              Sélectionnez au moins une intervention pour afficher les curseurs par zone.
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onReset}
+            className="secondary-action-button"
+            style={{
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-secondary)',
+              background: 'white',
+              fontWeight: 600,
+            }}
+          >
+            Réinitialiser les paramètres avancés
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+);
+
 const FullScreenModal = ({ src, onClose, label }) => (
   <div style={{
     position: 'fixed', inset: 0, zIndex: 1000,
@@ -215,10 +387,47 @@ function App() {
   const [resultImage, setResultImage] = useState(null);
   const [round, setRound] = useState(0);
   const [improvementNotes, setImprovementNotes] = useState('');
+  const [advancedEnabled, setAdvancedEnabled] = useState(false);
+  const [advancedSettings, setAdvancedSettings] = useState(ADVANCED_DEFAULTS);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [fullScreenImg, setFullScreenImg] = useState(null);
   const [error, setError] = useState(null);
+
+  const updateAdvancedSetting = (key, value) => {
+    setAdvancedSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const updateProcedureIntensity = (procedureId, value) => {
+    setAdvancedSettings((prev) => ({
+      ...prev,
+      procedureIntensity: {
+        ...prev.procedureIntensity,
+        [procedureId]: value,
+      },
+    }));
+  };
+
+  const resetAdvancedSettings = () => {
+    setAdvancedSettings(ADVANCED_DEFAULTS);
+  };
+
+  const buildAdvancedSettingsPayload = () => {
+    if (!advancedEnabled) return null;
+
+    return {
+      globalIntensity: advancedSettings.globalIntensity,
+      identityPreservation: advancedSettings.identityPreservation,
+      texturePreservation: advancedSettings.texturePreservation,
+      zoneIsolation: advancedSettings.zoneIsolation,
+      procedureIntensity: Object.fromEntries(
+        selectedProcedures.map((procedureId) => [
+          procedureId,
+          advancedSettings.procedureIntensity[procedureId] ?? advancedSettings.globalIntensity,
+        ])
+      ),
+    };
+  };
 
   const buildPrompt = ({ refinementText, roundNumber, isRefinement }) => {
     const selectedLabels = ALL_PROCEDURES
@@ -259,6 +468,10 @@ function App() {
     formData.append('diagnosis', diagnosis.trim());
     formData.append('refinement', nextRound > 1 ? improvementNotes.trim() : '');
     formData.append('round_number', String(nextRound));
+    const advancedPayload = buildAdvancedSettingsPayload();
+    if (advancedPayload) {
+      formData.append('advanced_settings', JSON.stringify(advancedPayload));
+    }
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -413,6 +626,15 @@ function App() {
           <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animationDelay: '0.2s' }}>
             <ProcedureSelector selected={selectedProcedures} onToggle={toggleProcedure} />
             <DiagnosisInput value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} />
+            <AdvancedSettingsPanel
+              enabled={advancedEnabled}
+              onToggle={setAdvancedEnabled}
+              settings={advancedSettings}
+              onSettingChange={updateAdvancedSetting}
+              onProcedureIntensityChange={updateProcedureIntensity}
+              onReset={resetAdvancedSettings}
+              selectedProcedures={selectedProcedures}
+            />
 
             {error && (
               <div style={{ padding: '1rem', background: '#fee2e2', color: '#dc2626', borderRadius: 'var(--radius-sm)', border: '1px solid #fecaca' }}>
