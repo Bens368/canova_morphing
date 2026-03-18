@@ -12,6 +12,7 @@ const PROCEDURE_GROUPS = [
       { id: 'botox_eyes', label: 'Botox (Patte d\'oie)' },
       { id: 'lips_filler', label: 'Lèvres (Acide H.)' },
       { id: 'nasolabial_filler', label: 'Sillons Nasogéniens' },
+      { id: 'marionette_lines', label: 'Plis d\'amertume' },
       { id: 'dark_circles', label: 'Cernes (Paupières)' },
       { id: 'cheek_volume', label: 'Volume Pommettes' },
       { id: 'jawline', label: 'Jawline & Menton' },
@@ -226,16 +227,16 @@ function App() {
     const focus = selectedLabels || 'Aucune zone spécifiée';
     const details = diagnosis.trim() || 'Aucune précision fournie';
     const promptParts = [
-      'Plastic surgery morphing simulation.',
-      `Focus areas: ${focus}.`,
-      `Details per intervention: ${details}.`,
+      'Single-image aesthetic morphing request.',
+      `Selected interventions: ${focus}.`,
+      `Medical intent and requested corrections: ${details}.`,
     ];
 
     if (isRefinement && refinementText) {
-      promptParts.push(`Refinement round ${roundNumber}: ${refinementText}. Keep previous edits and only adjust this request.`);
+      promptParts.push(`Refinement round ${roundNumber}: ${refinementText}. Preserve the current edited result and adjust only the requested points.`);
     }
 
-    promptParts.push('Output: photorealistic, maintain identity, consistent lighting/background, before/after should match except requested edits.');
+    promptParts.push('Return one realistic after image only. Preserve identity, framing, lighting, background, and all non-targeted anatomy.');
     return promptParts.join(' ');
   };
 
@@ -253,6 +254,10 @@ function App() {
     const formData = new FormData();
     formData.append('prompt', prompt);
     formData.append('image', imageFile);
+    formData.append('procedures', JSON.stringify(selectedProcedures));
+    formData.append('diagnosis', diagnosis.trim());
+    formData.append('refinement', nextRound > 1 ? improvementNotes.trim() : '');
+    formData.append('round_number', String(nextRound));
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
