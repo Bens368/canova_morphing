@@ -25,6 +25,8 @@ Non-negotiable output rules:
 - Preserve all anatomy and image regions that are not targeted by the selected intervention(s).
 - Do not beautify globally, do not apply makeup effects, do not smooth the whole face, do not change body shape unless explicitly requested, and do not make the patient look dramatically younger.
 - The edit must be clearly visible in the treated area so the result is useful in consultation, but it must remain medically plausible and realistically achievable.
+- If an intervention is selected, the visible sign targeted by that intervention must look genuinely treated in the final image, not merely slightly reduced.
+- For localized wrinkle treatments, the selected wrinkles should be fully or near-fully resolved when that is a plausible post-treatment outcome, while all non-selected wrinkles and skin folds elsewhere must remain unchanged.
 - Keep skin texture, pores, and normal natural asymmetry. Avoid plastic, waxy, overfiltered, or obviously AI-generated skin.
 - If the request is ambiguous, apply a conservative but noticeable localized correction only in the specified area.
 """
@@ -32,15 +34,15 @@ Non-negotiable output rules:
 PROCEDURE_LIBRARY = {
     "botox_front": {
         "label": "Botox Front",
-        "directive": "Reduce horizontal forehead rhytids at rest and soften dynamic forehead creasing while preserving natural forehead texture and normal brow mobility. Do not create a frozen, over-tight, or perfectly flat forehead.",
+        "directive": "Treat the horizontal forehead wrinkles so they are clearly resolved in the final image, potentially disappearing almost completely at rest if realistic for a successful botulinum toxin outcome. Keep the effect limited to the forehead only, preserve natural skin texture and brow position, and do not alter glabellar lines or crow's feet unless they were also selected.",
     },
     "botox_glabella": {
         "label": "Botox Glabelle",
-        "directive": "Soften the vertical glabellar frown lines between the eyebrows while preserving natural brow position and expression. Avoid an overarched brow or an unnaturally immobile upper face.",
+        "directive": "Treat the vertical glabellar frown lines between the eyebrows so they are clearly corrected and may disappear almost completely at rest when realistic. Keep the effect strictly limited to the glabella, preserve natural brow position and expression, and do not smooth the forehead or crow's feet unless those zones were also selected.",
     },
     "botox_eyes": {
         "label": "Botox Patte d'oie",
-        "directive": "Reduce crow's feet at the outer corners of the eyes while keeping realistic eyelid anatomy, smile dynamics, and periocular skin texture. Do not erase all expression around the eyes.",
+        "directive": "Treat the crow's feet at the outer corners of the eyes so the selected wrinkles are clearly corrected and can become minimal or absent at rest if plausible. Keep the edit strictly in the lateral periocular area, preserve realistic eyelid anatomy and smile dynamics, and do not smooth other wrinkle zones unless they were selected.",
     },
     "lips_filler": {
         "label": "Lèvres (Acide Hyaluronique)",
@@ -102,8 +104,10 @@ PROCEDURE_LIBRARY = {
 
 REALISM_RULES = [
     "The result must look achievable by common aesthetic medicine or plastic surgery, not by fantasy retouching.",
-    "Edits should be clearly perceptible in the treated area, stronger than a barely visible change, yet still subtle enough to remain credible.",
+    "Edits should be clearly perceptible in the treated area and strong enough that the patient immediately sees the intended benefit, not a barely visible change.",
     "Never remove all wrinkles, folds, laxity, or texture completely when that would look impossible. Improve them significantly but plausibly.",
+    "Exception for selected wrinkle-treatment zones: when the requested treatment would realistically make those wrinkles disappear or become almost imperceptible at rest, show that stronger correction.",
+    "Selected zones must be treated; non-selected zones must remain untreated.",
     "When multiple interventions are selected, combine them coherently without changing untreated areas.",
 ]
 
@@ -167,12 +171,17 @@ def build_request_prompt(
         "Edit brief: Produce one single after image for consultation preview from the uploaded patient photo.",
         (
             "Selected interventions: "
-            + (", ".join(selected_labels) if selected_labels else "None explicitly validated.")
+            + (
+                ", ".join(selected_labels)
+                if selected_labels
+                else "None explicitly validated."
+            )
         ),
         f"Clinical intent and user notes: {diagnosis_text}",
         "Procedure-specific directives:\n" + build_intervention_block(procedure_ids),
         "Realism rules:\n" + "\n".join(f"- {rule}" for rule in REALISM_RULES),
-        "Forbidden output patterns:\n" + "\n".join(f"- {rule}" for rule in NEGATIVE_RULES),
+        "Forbidden output patterns:\n"
+        + "\n".join(f"- {rule}" for rule in NEGATIVE_RULES),
     ]
 
     if round_number > 1 and refinement_text:
@@ -184,10 +193,11 @@ def build_request_prompt(
         sections.append(f"Legacy operator notes: {fallback_text}")
 
     sections.append(
-        "Final instruction: the treated area must show a noticeable, believable improvement while the patient remains unmistakably the same person."
+        "Final instruction: every selected intervention must be visibly and convincingly applied in its exact target area. If a selected wrinkle zone is meant to be corrected, that zone should look truly corrected, while non-selected wrinkle zones must stay unchanged. The patient must remain unmistakably the same person."
     )
 
     return "\n\n".join(sections)
+
 
 # Configuration CORS
 allowed_origins = os.getenv(
